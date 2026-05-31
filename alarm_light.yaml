@@ -1,9 +1,10 @@
-# Version: 1.1.0 - Modifiziert für Tuya Wake-up (Progressiv 0-100%)
+# Version: 1.2.0 - Modifiziert für Tuya Wake-up (30 Min Progressiv 0-100% + Blink-Alarm)
 blueprint:
   name: "⏰ Tuya Alarm Wake-up Light"
   description: >
-    📦 [Version 1.1.0] Startet vor dem Wecker und steigert die Helligkeit progressiv 
-    über 10 Minuten von 1% auf 100%. Speziell optimiert für Tuya-Leuchtmittel! 🌅
+    📦 [Version 1.2.0] Startet 30 Minuten vor dem Wecker und steigert die Helligkeit progressiv 
+    in 1%-Schritten von 1% auf 100%. Speziell optimiert für Tuya-Leuchtmittel! 
+    Wenn der Wecker klingelt, blinkt das Licht sanft als visuelles Wecksignal. 🌅
   domain: automation
   homeassistant:
     min_version: 2025.12.0
@@ -37,15 +38,13 @@ blueprint:
 
     offset_before_alarm:
       name: ⏱️ Offset Before Alarm
-      description: Wann soll der Sonnenaufgang beginnen
-      default: "-00:10:00"
+      description: Wie viele Minuten vor dem Wecker soll der Sonnenaufgang beginnen?
+      default: "-00:30:00"
       selector:
         select:
           options:
-            - label: 10 Minuten vorher
-              value: "-00:10:00"
-            - label: 15 Minuten vorher
-              value: "-00:15:00"
+            - label: 30 Minuten vorher
+              value: "-00:30:00"
           mode: dropdown
 
     weekday_selection:
@@ -96,13 +95,13 @@ condition:
       {% endif %}
 
 action:
-  # 1. Schritt: Lampe auf niedrigster Stufe (1%) einschalten
+  # Schritt 1: Lampe auf niedrigster Stufe (1%) einschalten
   - action: light.turn_on
     target: !input lights_target
     data:
       brightness_pct: 1
       
-  # 2. Schritt: Progressives Aufhellen (30 Minuten)
+  # Schritt 2: Progressives Aufhellen über 30 Minuten (99 Schritte à 18 Sekunden)
   - repeat:
       count: 99
       sequence:
@@ -113,7 +112,7 @@ action:
           data:
             brightness_pct: "{{ repeat.index + 1 }}"
 
-  # 3. Schritt: Sanftes Blinken als Wecksignal (3 Wiederholungen)
+  # Schritt 3: Sanftes Blinken als Wecksignal zur eigentlichen Weckzeit
   - repeat:
       count: 3
       sequence:
@@ -127,4 +126,3 @@ action:
             brightness_pct: 100
         - delay:
             milliseconds: 600
-
