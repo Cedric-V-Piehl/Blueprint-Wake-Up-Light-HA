@@ -96,19 +96,35 @@ condition:
       {% endif %}
 
 action:
-  # Schritt 1: Lampe auf niedrigster Stufe (1%) einschalten
+  # 1. Schritt: Lampe auf niedrigster Stufe (1%) einschalten
   - action: light.turn_on
     target: !input lights_target
     data:
       brightness_pct: 1
       
-  # Schritt 2: 10-mal wiederholen - jede Minute um 10% heller werden
+  # 2. Schritt: Progressives Aufhellen (30 Minuten)
   - repeat:
-      count: 10
+      count: 99
       sequence:
         - delay:
-            minutes: 1
+            seconds: 18
         - action: light.turn_on
           target: !input lights_target
           data:
-            brightness_step_pct: 10
+            brightness_pct: "{{ repeat.index + 1 }}"
+
+  # 3. Schritt: Sanftes Blinken als Wecksignal (3 Wiederholungen)
+  - repeat:
+      count: 3
+      sequence:
+        - action: light.turn_off
+          target: !input lights_target
+        - delay:
+            milliseconds: 600
+        - action: light.turn_on
+          target: !input lights_target
+          data:
+            brightness_pct: 100
+        - delay:
+            milliseconds: 600
+
