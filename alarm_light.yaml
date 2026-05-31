@@ -1,0 +1,114 @@
+# Version: 1.1.0 - Modifiziert für Tuya Wake-up (Progressiv 0-100%)
+blueprint:
+  name: "⏰ Tuya Alarm Wake-up Light"
+  description: >
+    📦 [Version 1.1.0] Startet vor dem Wecker und steigert die Helligkeit progressiv 
+    über 10 Minuten von 1% auf 100%. Speziell optimiert für Tuya-Leuchtmittel! 🌅
+  domain: automation
+  homeassistant:
+    min_version: 2025.12.0
+
+  input:
+    alarm_sensor:
+      name: ⏰ Next Alarm Sensor
+      description: >
+        Der Sensor deines Handys für den nächsten Wecker (z. B. sensor.pixel_7_next_alarm).
+      selector:
+        entity:
+          filter:
+            - domain: sensor
+              device_class: timestamp
+
+    person_entity:
+      name: 👤 Person
+      description: >
+        Personen-Entität. Das Licht geht nur an, wenn diese Person zu Hause ist.
+      selector:
+        entity:
+          domain: person
+
+    lights_target:
+      name: 💡 Target Lights
+      description: Die Tuya-Lampen, die als Aufwachlicht dienen sollen.
+      selector:
+        target:
+          entity:
+            domain: light
+
+    offset_before_alarm:
+      name: ⏱️ Offset Before Alarm
+      description: Wann soll der Sonnenaufgang beginnen? (Empfehlung: 10 Minuten für den 0-100% Effekt)
+      default: "-00:10:00"
+      selector:
+        select:
+          options:
+            - label: 10 Minuten vorher
+              value: "-00:10:00"
+            - label: 15 Minuten vorher
+              value: "-00:15:00"
+          mode: dropdown
+
+    weekday_selection:
+      name: 📅 Active Days
+      description: An welchen Tagen soll die Automation laufen?
+      default: "all"
+      selector:
+        select:
+          options:
+            - label: Alle Tage
+              value: all
+            - label: Nur Wochentags (Mo-Fr)
+              value: weekdays
+            - label: Nur am Wochenende (Sa-So)
+              value: weekends
+          mode: dropdown
+
+mode: single
+max_exceeded: silent
+
+variables:
+  weekday_choice: !input weekday_selection
+
+trigger:
+  - trigger: time
+    at:
+      entity_id: !input alarm_sensor
+      offset: !input offset_before_alarm
+
+condition:
+  - condition: state
+    entity_id: !input person_entity
+    state: home
+  - condition: state
+    entity_id: sun.sun
+    state: below_horizon
+  - condition: template
+    value_template: >
+      {% set today = now().weekday() %}
+      {% if weekday_choice == 'all' %}
+        true
+      {% elif weekday_choice == 'weekdays' %}
+        {{ today < 5 }}
+      {% elif weekday_choice == 'weekends' %}
+        {{ today >= 5 }}
+      {% else %}
+        true
+      {% endif %}
+
+action:
+  # Schritt 1: Lampe auf niedrigster Stufe (1%) einschalten
+  - action: light.turn_on
+    target: !input lights_target
+    data:
+      brightness_pct: 1
+      
+  # Schritt 2: 10-mal wiederholen - jede Minute um 10% heller werden
+  - repeat:
+      count: 10
+      sequence:
+        - delay:
+            minutes: 1
+        - action: light.turn_on
+          target: !input lights_target
+          data:
+            brightness_step_pct: 10
