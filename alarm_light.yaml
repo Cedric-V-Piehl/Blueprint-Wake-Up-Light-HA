@@ -37,7 +37,7 @@ blueprint:
 
     offset_before_alarm:
       name: ⏱️ Offset Before Alarm
-      description: Wann soll der Sonnenaufgang beginnen? (Empfehlung: 10 Minuten für den 0-100% Effekt)
+      description: Wann soll der Sonnenaufgang beginnen
       default: "-00:10:00"
       selector:
         select:
